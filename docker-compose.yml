@@ -1,0 +1,98 @@
+version: "3.7"
+
+volumes:
+  grafana-data:
+  prometheus-data:    
+
+services:
+  grafana:
+    image: grafana/grafana:8.0.6
+    container_name: grafana
+    restart: unless-stopped
+    volumes:
+    - grafana-data:/var/lib/grafana
+    ports:
+    - 3000:3000
+
+  prometheus:
+    image: prom/prometheus:v2.28.1
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+    - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    - prometheus-data:/prometheus
+    ports:
+    - 9090:9090
+    command:
+    - '--config.file=/etc/prometheus/prometheus.yml'
+    - '--storage.tsdb.path=/prometheus'
+    - '--storage.tsdb.retention.time=1y'
+    - '--web.enable-lifecycle'
+
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    restart: unless-stopped
+    ports:
+    - 9100:9100
+    ###### linux
+    # command:
+    # - '--path.rootfs=/host'
+    # pid: host
+    # volumes:
+    # - '/:/host:ro,rslave'
+    ###### windows
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    command: 
+      - '--path.procfs=/host/proc' 
+      - '--path.sysfs=/host/sys'
+      - --collector.filesystem.ignored-mount-points
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+        
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    expose:
+    - 8080
+    volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:rw
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+    
+  app_example:
+    image: quay.io/brancz/prometheus-example-app:v0.3.0
+    container_name: app_example
+    restart: unless-stopped
+    ports:
+    - 80:8080
+
+  alertmanager:
+    image: prom/alertmanager:v0.23.0
+    container_name: alertmanager
+    volumes:
+      - ./config.yml/:/etc/alertmanager/config.yml
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    restart: unless-stopped
+    expose:
+      - 9093
+    labels:
+      org.label-schema.group: "monitoring"
+
+  prometheus-msteams:
+    image: docker.io/bzon/prometheus-msteams:v1.1.4
+    container_name: prometheus-msteams
+    restart: unless-stopped
+    environment:
+        - TEAMS_INCOMING_WEBHOOK_URL=https://bancolombia.webhook.office.com/webhookb2/1362c5f6-e1bc-4953-bde2-f4082bd75748@b5e244bd-c492-495b-8b10-61bfd453e423/IncomingWebhook/ca773b32640f414ba0c878e43c47756d/cea13b5e-a6bb-48d4-9edb-da267cd9b057
+        - TEAMS_REQUEST_URI=alertmanager
+    expose:
+      - 2000
+    labels:
+      org.label-schema.group: "monitoring"
+  
