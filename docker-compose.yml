@@ -89,7 +89,7 @@ services:
     container_name: prometheus-msteams
     restart: unless-stopped
     environment:
-        - TEAMS_INCOMING_WEBHOOK_URL=https://bancolombia.webhook.office.com/webhookb2/1362c5f6-e1bc-4953-bde2-f4082bd75748@b5e244bd-c492-495b-8b10-61bfd453e423/IncomingWebhook/ca773b32640f414ba0c878e43c47756d/cea13b5e-a6bb-48d4-9edb-da267cd9b057
+        - TEAMS_INCOMING_WEBHOOK_URL=https://xxxx.webhook.office.com/webhookb2/xxx@xxx
         - TEAMS_REQUEST_URI=alertmanager
     expose:
       - 2000
